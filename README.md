@@ -1,4 +1,4 @@
-# rainjs
+# RainJS
 
 > react and redux-observable framework
 
