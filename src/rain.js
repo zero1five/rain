@@ -2,38 +2,20 @@ import React from 'react'
 import ReactDOM from 'react-dom'
 import { createStore, combineReducers, applyMiddleware } from 'redux'
 import { Provider, connect as _connect } from 'react-redux'
-import createSagaMiddleware from 'redux-saga'
-import {
-  fork,
-  take,
-  select,
-  call,
-  all,
-  put,
-  race,
-  takeEvery,
-  takeLatest
-} from 'redux-saga/effects'
+import { createEpicMiddleware, combineEpics } from 'redux-observable'
 
 const produceNamespace = filename => {
   return filename.replace(/\.[j|t]s(x?)/, '')
 }
 
-function* puts(type, payload) {
-  yield put({
-    type,
-    payload
-  })
-}
-
-class Dva {
+class Rain {
   constructor() {
-    this.isDebug = false
     this.routingComponent = {}
-    this.sagaMiddleware = {}
+    this.epicMiddleware = {}
     this.appReducers = {}
     this.actionStategy = []
-    this.effects = {}
+    this.epic = {}
+    this.rootEpic = []
     this.JsxElement = {}
     this.errorFn = void 666
     this._store = null
@@ -45,63 +27,25 @@ class Dva {
   }
 
   init() {
-    this.sagaMiddleware = createSagaMiddleware(this.rootSaga)
-  }
-
-  *rootWatcher() {
-    while (true) {
-      const { type, ...others } = yield take(this.actionStategy)
-      if (this.isDebug) {
-        console.info(
-          `[saga-action-types]:  '${type}' in file '${this.moduleFilename[type]}'`,
-          'payload:',
-          others
-        )
-      }
-      const fn = this.effects[type]
-      if (fn !== void 666) {
-        try {
-          yield call(
-            fn,
-            {
-              fork,
-              take,
-              select,
-              call,
-              puts,
-              put,
-              race,
-              takeEvery,
-              takeLatest
-            },
-            others
-          )
-        } catch (e) {
-          this.errorFn(e)
-        }
-      }
-    }
-  }
-
-  *rootSaga() {
-    yield all([fork(this.rootWatcher.bind(this))])
+    this.epicMiddleware = createEpicMiddleware()
   }
 
   model(Module, filename) {
     const model = Module.default
     const namespace = produceNamespace(filename)
-    if (namespace === void 666) {
+    if (namespace === undefined) {
       throw new SyntaxError('module needs a namespace')
     }
     if (this.appReducers[namespace]) {
       throw new SyntaxError(`module for name '${namespace}' exist`)
     }
 
-    Object.keys(model.effects).forEach(key => {
+    Object.keys(model.epic).forEach(key => {
       const partialKey = namespace + '/' + key
       this.actionStategy.push(partialKey)
-      this.effects[partialKey] = model.effects[key]
+      this.epic[partialKey] = model.epic[key]
       this.moduleFilename[partialKey] = filename
+      this.rootEpic.push(model.epic[key])
     })
 
     const modelState = model.state || {}
@@ -123,15 +67,12 @@ class Dva {
   }
 
   run(DOMNode, options) {
-    const { isDebug } = options
-
-    if (isDebug === true) this.isDebug = true
     const store = createStore(
       combineReducers(this.appReducers),
-      applyMiddleware(this.sagaMiddleware)
+      applyMiddleware(this.epicMiddleware)
     )
     this._store = store
-    this.sagaMiddleware.run(this.rootSaga.bind(this))
+    this.epicMiddleware.run(this.rootEpic)
     ReactDOM.render(
       <Provider store={store}>{this.JsxElement}</Provider>,
       DOMNode
@@ -140,4 +81,4 @@ class Dva {
 }
 
 export const connect = _connect
-export default new Dva()
+export default new Rain()
