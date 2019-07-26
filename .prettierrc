@@ -1,0 +1,9 @@
+{
+  "singleQuote": true,
+  "tabWidth": 2,
+  "semi": false,
+  "Semicolons": false,
+  "Quotes": true,
+  "Arrow Function Parentheses": true,
+  "Print Width": 80
+}
