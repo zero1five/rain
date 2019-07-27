@@ -1,7 +1,7 @@
 import React, { isValidElement } from 'react'
 import ReactDOM from 'react-dom'
 import invariant from 'invariant'
-import { createStore, combineReducers, applyMiddleware } from 'redux'
+import { createStore, combineReducers, applyMiddleware, compose } from 'redux'
 import { Provider, connect as _connect } from 'react-redux'
 import { createEpicMiddleware, combineEpics } from 'redux-observable'
 import { isFunction, isString, isArray } from 'util'
@@ -16,6 +16,16 @@ function isHTMLElement(node) {
   )
 }
 
+function assignOpts(opt, key) {
+  if (isFunction(opt)) {
+    return [opt]
+  } else if (isArray(opt)) {
+    return opt
+  } else {
+    invariant(!opt, `[app.run] options.${key} must be a Function or Array`)
+  }
+}
+
 class Rain {
   constructor() {
     this.routingComponent = {}
@@ -28,30 +38,38 @@ class Rain {
     this.errorFn = null
     this._store = null
     this.moduleFilename = {}
+
     this.initialState = {}
     this.middlewares = []
+    this.extraEnhancers = []
+    this.listeners = []
   }
 
   onError(fn) {
     this.errorFn = fn
   }
 
-  init({ initialState = {}, onAction }) {
+  init({ initialState, onAction, extraEnhancers, onStateChange }) {
     this.epicMiddleware = createEpicMiddleware()
-    this.initialState = initialState
     this.middlewares.push(this.epicMiddleware)
 
+    if (initialState) {
+      this.initialState = initialState
+    }
+
     if (onAction) {
-      if (isFunction(onAction)) {
-        this.middlewares.push(onAction)
-      } else if (isArray(onAction)) {
-        this.middlewares = [...this.middlewares, ...onAction]
-      } else {
-        invariant(
-          onAction,
-          `[app.run] options.onAction must be a Function or Array`
-        )
-      }
+      this.middlewares = [
+        ...this.middlewares,
+        ...assignOpts(onAction, 'onAction')
+      ]
+    }
+
+    if (extraEnhancers) {
+      this.extraEnhancers = assignOpts(extraEnhancers, 'extraEnhancers')
+    }
+
+    if (onStateChange) {
+      this.listeners = assignOpts(onStateChange, 'onStateChange')
     }
   }
 
@@ -75,8 +93,9 @@ class Rain {
       })
     }
 
-    const modelState = model.state || {}
+    const modelState = model.state || !model.state ? model.state : {}
     const reducer = (state = modelState, { type, payload }) => {
+      type = type.slice(type.indexOf('/') + 1)
       const func = model.reducer[type]
       if (func) {
         return func(state, { type, payload })
@@ -109,13 +128,23 @@ class Rain {
       `[app.run] router not or failed register`
     )
 
+    const enhancer = compose(
+      applyMiddleware(...this.middlewares),
+      ...this.extraEnhancers
+    )
+
     const store = createStore(
       combineReducers(this.appReducers),
       this.initialState,
-      applyMiddleware(...this.middlewares)
+      enhancer
     )
-
     this._store = store
+
+    store.subscribe(() => {
+      for (const listener of this.listeners) {
+        listener(this._store.getState())
+      }
+    })
 
     const root = this.rootEpic.length
       ? combineEpics(...this.rootEpic)

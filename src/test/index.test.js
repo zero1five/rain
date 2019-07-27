@@ -42,7 +42,6 @@ test('router not or failed register', t => {
 
 test('opts.initialState', t => {
   const app = rain({ initialState: { count: 1 } })
-  app.model(countModel, 'count')
   app.router(() => <div />)
   app.run()
 
@@ -59,7 +58,6 @@ test('opts.onAction', t => {
     onAction: countMiddleware
   })
 
-  app.model(countModel, 'count')
   app.router(() => <div />)
   app.run()
 
@@ -69,7 +67,7 @@ test('opts.onAction', t => {
   t.is(count, 1)
 })
 
-test('opt.onAction with Array', t => {
+test('opts.onAction with Array', t => {
   let count
   const countMiddleware = () => next => action => {
     count += 1
@@ -83,11 +81,63 @@ test('opt.onAction with Array', t => {
   const app = rain({
     onAction: [countMiddleware, count2Middleware]
   })
-  app.model(countModel, 'count')
   app.router(() => <div />)
   app.run()
 
   count = 0
   app._store.dispatch({ type: 'test' })
   t.is(count, 3)
+})
+
+test('opts.extraEnhancers', t => {
+  let count
+  const countEnhancer = storeCreator => (reducer, preloadedState, enhancer) => {
+    const store = storeCreator(reducer, preloadedState, enhancer)
+    const oldDispatch = store.dispatch
+    store.dispatch = action => {
+      count += 1
+      oldDispatch(action)
+    }
+    return store
+  }
+
+  const app = rain({
+    extraEnhancers: countEnhancer
+  })
+  app.router(() => <div />)
+  app.run()
+
+  count = 0
+  app._store.dispatch({ type: 'test' })
+
+  t.is(count, 1)
+})
+
+test('opts.onStateChange', t => {
+  let savedState = null
+
+  const app = rain({
+    onStateChange(state) {
+      savedState = state
+    }
+  })
+
+  app.model(
+    {
+      namespace: 'count',
+      state: 0,
+      reducer: {
+        add(state) {
+          return state + 1
+        }
+      }
+    },
+    'count'
+  )
+  app.router(() => <div />)
+  app.run()
+
+  app._store.dispatch({ type: 'count/add' })
+
+  t.is(savedState.count, 1)
 })
