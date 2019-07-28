@@ -1,6 +1,6 @@
 {
   "name": "redux-rain",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "react and redux-observable framework",
   "main": "dist/redux-rain.cjs.js",
   "files": [
