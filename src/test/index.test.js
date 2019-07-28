@@ -1,5 +1,5 @@
 import './helper/setup-env'
-import React from 'react'
+import React, { isValidElement } from 'react'
 import { map, tap, filter } from 'rxjs/operators'
 import test from 'ava'
 import rain from '..'
@@ -185,4 +185,12 @@ test('modular state', t => {
 
   t.is(app._store.getState().count, 0)
   t.is(app._store.getState().stand, 1)
+})
+
+test('app.run not input string must be return JSX', t => {
+  const app = rain()
+  app.model(countModel, 'count')
+  app.router(() => <div />)
+
+  t.true(isValidElement(app.run()()))
 })

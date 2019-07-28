@@ -142,14 +142,11 @@ class Rain {
   }
 
   router(RouterModel) {
-    this.JsxElement =
-      typeof RouterModel === 'function'
-        ? RouterModel(this.routingComponent)
-        : RouterModel
+    this.JsxElement = RouterModel
   }
 
-  run(node = '#root', options) {
-    if (isString) {
+  run(node, options) {
+    if (isString(node)) {
       node = document.querySelector(node)
       invariant(node, `[app.run] react-dom container ${node || ''} not found`)
     }
@@ -160,7 +157,7 @@ class Rain {
     )
 
     invariant(
-      isValidElement(this.JsxElement),
+      this.JsxElement && isFunction(this.JsxElement),
       `[app.run] router not or failed register`
     )
 
@@ -188,8 +185,24 @@ class Rain {
 
     this.epicMiddleware.run(root)
 
-    ReactDOM.render(<Provider store={store}>{this.JsxElement}</Provider>, node)
+    if (node) {
+      ReactDOM.render(
+        <Provider store={store}>{this.JsxElement}</Provider>,
+        node
+      )
+    } else {
+      return getProvider(store, this, this.JsxElement)
+    }
   }
+}
+
+function getProvider(store, app, router) {
+  const Root = extraProps => (
+    <Provider store={store}>
+      {router({ app, history: app._history, ...extraProps })}
+    </Provider>
+  )
+  return Root
 }
 
 export const connect = _connect
