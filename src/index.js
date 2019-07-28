@@ -5,7 +5,9 @@ import { createStore, combineReducers, applyMiddleware, compose } from 'redux'
 import { Provider, connect as _connect } from 'react-redux'
 import { createEpicMiddleware, combineEpics } from 'redux-observable'
 import { isFunction, isString, isArray } from 'util'
+import { map, filter } from 'rxjs/operators'
 import { cloneDeep } from 'lodash'
+import { of } from 'rxjs';
 
 const produceNamespace = filename => {
   return filename.replace(/\.[j|t]s(x?)/, '')
@@ -27,14 +29,26 @@ function assignOpts(opt, source, key) {
   }
 }
 
-function autoRemovePrefix() {
-  return createStore => (reducer, initialState, enhancer) => {
-    const store = createStore(reducer, initialState, enhancer)
-    function dispatch(action) {
-      const res = store.dispatch(action)
-      return res
-    }
-    return { ...store, dispatch }
+function wrapEpic(fn, namespace) {
+  return action$ => {
+    const source = action$.pipe(
+      filter(action => {
+        const { type } = action
+        const prefix = type.slice(0, type.indexOf('/'))
+        return prefix === namespace
+      }),
+      map(action => ({
+        ...action,
+        type: action.type.slice(action.type.indexOf('/') + 1)
+      }))
+    )
+
+    return fn(source).pipe(
+      map(action => ({
+        ...action,
+        type: namespace + '/' + action.type
+      }))
+    )
   }
 }
 
@@ -43,8 +57,6 @@ class Rain {
     this.routingComponent = {}
     this.epicMiddleware = {}
     this.appReducers = {}
-    this.actionStategy = []
-    this.epic = {}
     this.rootEpic = []
     this.JsxElement = null
     this.errorFn = null
@@ -53,7 +65,7 @@ class Rain {
 
     this.initialState = {}
     this.middlewares = []
-    this.extraEnhancers = [autoRemovePrefix()]
+    this.extraEnhancers = []
     this.listeners = []
   }
 
@@ -103,10 +115,10 @@ class Rain {
     if (model.epic) {
       Object.keys(model.epic).forEach(key => {
         const partialKey = namespace + '/' + key
-        this.actionStategy.push(partialKey)
-        this.epic[partialKey] = model.epic[key]
+        const wrapper = wrapEpic(model.epic[key], namespace)
+
         this.moduleFilename[partialKey] = filename
-        this.rootEpic.push(model.epic[key])
+        this.rootEpic.push(wrapper)
       })
     }
 

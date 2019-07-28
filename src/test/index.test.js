@@ -19,11 +19,12 @@ const countModel = {
     }
   },
   epic: {
-    minusEpic: action$ =>
-      action$.pipe(
-        filter(action => action.type === 'count/minus'),
-        map(action => ({ type: 'count/doubleMinus', payload: action.payload }))
+    minusEpic: action$ => {
+      return action$.pipe(
+        filter(action => action.type === 'minus'),
+        map(action => ({ type: 'doubleMinus', payload: action.payload }))
       )
+    }
   }
 }
 
