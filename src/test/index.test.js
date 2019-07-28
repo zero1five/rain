@@ -1,5 +1,6 @@
 import './helper/setup-env'
 import React from 'react'
+import { map, tap, filter, mergeMap } from 'rxjs/operators'
 import test from 'ava'
 import rain from '..'
 
@@ -12,7 +13,17 @@ const countModel = {
     },
     minus(state, { payload }) {
       return state - payload || 1
+    },
+    doubleMinus(state, { payload }) {
+      return state - payload * 2
     }
+  },
+  epic: {
+    minusEpic: action$ =>
+      action$.pipe(
+        filter(action => action.type === 'minus'),
+        map(action => ({ type: 'doubleMinus', payload: action.payload }))
+      )
   }
 }
 
@@ -140,4 +151,15 @@ test('opts.onStateChange', t => {
   app._store.dispatch({ type: 'count/add' })
 
   t.is(savedState.count, 1)
+})
+
+test('epic', t => {
+  const app = rain()
+  app.model(countModel, 'count')
+  app.router(() => <div />)
+  app.run()
+
+  app._store.dispatch({ type: 'count/minus', payload: 1 })
+
+  t.is(app._store.getState().count, -3)
 })

@@ -16,13 +16,25 @@ function isHTMLElement(node) {
   )
 }
 
-function assignOpts(opt, key) {
+function assignOpts(opt, source, key) {
   if (isFunction(opt)) {
-    return [opt]
+    return [...source, opt]
   } else if (isArray(opt)) {
-    return opt
+    return [...source, ...opt]
   } else {
     invariant(!opt, `[app.run] options.${key} must be a Function or Array`)
+  }
+}
+
+function autoRemovePrefix() {
+  return createStore => (reducer, initialState, enhancer) => {
+    const store = createStore(reducer, initialState, enhancer)
+    function dispatch(action) {
+      action.type = action.type.slice(action.type.indexOf('/') + 1)
+      const res = store.dispatch(action)
+      return res
+    }
+    return { ...store, dispatch }
   }
 }
 
@@ -41,7 +53,7 @@ class Rain {
 
     this.initialState = {}
     this.middlewares = []
-    this.extraEnhancers = []
+    this.extraEnhancers = [autoRemovePrefix()]
     this.listeners = []
   }
 
@@ -58,18 +70,23 @@ class Rain {
     }
 
     if (onAction) {
-      this.middlewares = [
-        ...this.middlewares,
-        ...assignOpts(onAction, 'onAction')
-      ]
+      this.middlewares = assignOpts(onAction, this.middlewares, 'onAction')
     }
 
     if (extraEnhancers) {
-      this.extraEnhancers = assignOpts(extraEnhancers, 'extraEnhancers')
+      this.extraEnhancers = assignOpts(
+        extraEnhancers,
+        this.extraEnhancers,
+        'extraEnhancers'
+      )
     }
 
     if (onStateChange) {
-      this.listeners = assignOpts(onStateChange, 'onStateChange')
+      this.listeners = assignOpts(
+        onStateChange,
+        this.listeners,
+        'onStateChange'
+      )
     }
   }
 
@@ -95,7 +112,6 @@ class Rain {
 
     const modelState = model.state || !model.state ? model.state : {}
     const reducer = (state = modelState, { type, payload }) => {
-      type = type.slice(type.indexOf('/') + 1)
       const func = model.reducer[type]
       if (func) {
         return func(state, { type, payload })
@@ -149,6 +165,7 @@ class Rain {
     const root = this.rootEpic.length
       ? combineEpics(...this.rootEpic)
       : combineEpics()
+
     this.epicMiddleware.run(root)
 
     ReactDOM.render(<Provider store={store}>{this.JsxElement}</Provider>, node)
