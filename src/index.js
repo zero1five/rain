@@ -1,4 +1,4 @@
-import React, { isValidElement } from 'react'
+import React from 'react'
 import ReactDOM from 'react-dom'
 import invariant from 'invariant'
 import { createStore, combineReducers, applyMiddleware, compose } from 'redux'
@@ -7,7 +7,6 @@ import { createEpicMiddleware, combineEpics } from 'redux-observable'
 import { isFunction, isString, isArray } from 'util'
 import { map, filter } from 'rxjs/operators'
 import { cloneDeep } from 'lodash'
-import { of } from 'rxjs'
 
 const produceNamespace = filename => {
   return filename.replace(/\.[j|t]s(x?)/, '')
