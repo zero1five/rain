@@ -1,6 +1,6 @@
 import './helper/setup-env'
 import React from 'react'
-import { map, tap, filter, mergeMap } from 'rxjs/operators'
+import { map, tap, filter } from 'rxjs/operators'
 import test from 'ava'
 import rain from '..'
 
@@ -8,21 +8,21 @@ const countModel = {
   namespace: 'count',
   state: 0,
   reducer: {
-    add(state, { payload }) {
-      return state + payload || 1
+    add(state, { payload = 1 }) {
+      return state + payload
     },
-    minus(state, { payload }) {
-      return state - payload || 1
+    minus(state, { payload = 1 }) {
+      return state - payload
     },
-    doubleMinus(state, { payload }) {
+    doubleMinus(state, { payload = 1 }) {
       return state - payload * 2
     }
   },
   epic: {
     minusEpic: action$ =>
       action$.pipe(
-        filter(action => action.type === 'minus'),
-        map(action => ({ type: 'doubleMinus', payload: action.payload }))
+        filter(action => action.type === 'count/minus'),
+        map(action => ({ type: 'count/doubleMinus', payload: action.payload }))
       )
   }
 }
@@ -159,7 +159,31 @@ test('epic', t => {
   app.router(() => <div />)
   app.run()
 
-  app._store.dispatch({ type: 'count/minus', payload: 1 })
+  app._store.dispatch({ type: 'count/minus' })
 
   t.is(app._store.getState().count, -3)
+})
+
+test('modular state', t => {
+  const app = rain()
+  app.model(countModel, 'count')
+  app.model(
+    {
+      namespace: 'stand',
+      state: 0,
+      reducer: {
+        add(state) {
+          return state + 1
+        }
+      }
+    },
+    'stand'
+  )
+  app.router(() => <div />)
+  app.run()
+
+  app._store.dispatch({ type: 'stand/add' })
+
+  t.is(app._store.getState().count, 0)
+  t.is(app._store.getState().stand, 1)
 })

@@ -5,6 +5,7 @@ import { createStore, combineReducers, applyMiddleware, compose } from 'redux'
 import { Provider, connect as _connect } from 'react-redux'
 import { createEpicMiddleware, combineEpics } from 'redux-observable'
 import { isFunction, isString, isArray } from 'util'
+import { cloneDeep } from 'lodash'
 
 const produceNamespace = filename => {
   return filename.replace(/\.[j|t]s(x?)/, '')
@@ -30,7 +31,6 @@ function autoRemovePrefix() {
   return createStore => (reducer, initialState, enhancer) => {
     const store = createStore(reducer, initialState, enhancer)
     function dispatch(action) {
-      action.type = action.type.slice(action.type.indexOf('/') + 1)
       const res = store.dispatch(action)
       return res
     }
@@ -91,7 +91,7 @@ class Rain {
   }
 
   model(Module, filename) {
-    const model = Module.default || Module
+    const model = cloneDeep(Module.default || Module)
     const namespace = produceNamespace(filename)
 
     invariant(namespace, `[app.model] module needs a namespace`)
@@ -107,6 +107,14 @@ class Rain {
         this.epic[partialKey] = model.epic[key]
         this.moduleFilename[partialKey] = filename
         this.rootEpic.push(model.epic[key])
+      })
+    }
+
+    if (model.reducer) {
+      Object.keys(model.reducer).forEach(key => {
+        const func = model.reducer[key]
+        model.reducer[namespace + '/' + key] = func
+        delete model.reducer[key]
       })
     }
 
