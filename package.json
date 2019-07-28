@@ -17,7 +17,7 @@
     "prepublishOnly": "yarn build"
   },
   "repository": {
-    "url": "zero1five/rainjs",
+    "url": "https://github.com/zero1five/rain.git",
     "type": "git"
   },
   "author": "zero1five<zerodengyin@gmail.com>",
