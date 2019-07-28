@@ -7,7 +7,7 @@ import { createEpicMiddleware, combineEpics } from 'redux-observable'
 import { isFunction, isString, isArray } from 'util'
 import { map, filter } from 'rxjs/operators'
 import { cloneDeep } from 'lodash'
-import { of } from 'rxjs';
+import { of } from 'rxjs'
 
 const produceNamespace = filename => {
   return filename.replace(/\.[j|t]s(x?)/, '')
