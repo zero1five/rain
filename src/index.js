@@ -5,7 +5,20 @@ import { createStore, combineReducers, applyMiddleware, compose } from 'redux'
 import { Provider, connect as _connect } from 'react-redux'
 import { createEpicMiddleware, combineEpics } from 'redux-observable'
 import { isFunction, isString, isArray } from 'util'
-import { map, filter, concat, tap, startWith, mergeMap } from 'rxjs/operators'
+import { of, defer } from 'rxjs'
+import {
+  map,
+  filter,
+  concatMap,
+  mapTo,
+  tap,
+  concat,
+  startWith,
+  endWith,
+  merge,
+  mergeMap,
+  mergeAll
+} from 'rxjs/operators'
 import { cloneDeep } from 'lodash'
 import Plugin from './Plugin'
 export { default as createLoading } from './createLoading'
@@ -33,9 +46,9 @@ function assignOpts(opt, source, key) {
 const SHOW = '@@DVA_LOADING/SHOW'
 const HIDE = '@@DVA_LOADING/HIDE'
 
-function wrapEpic(fn, namespace) {
+function wrapEpic(fn /* epic */, namespace /* model name */) {
   return action$ => {
-    const source = action$.pipe(
+    const source$ = action$.pipe(
       filter(action => {
         const { type } = action
         const prefix = type.slice(0, type.indexOf('/'))
@@ -47,12 +60,16 @@ function wrapEpic(fn, namespace) {
       }))
     )
 
-    return fn(source).pipe(
+    const result$ = fn(source$).pipe(
       map(action => ({
         ...action,
         type: namespace + '/' + action.type
-      }))
+      })),
+      startWith({ type: SHOW }),
+      merge(of({ type: HIDE }))
     )
+
+    return result$
   }
 }
 

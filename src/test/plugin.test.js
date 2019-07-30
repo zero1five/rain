@@ -4,7 +4,7 @@ import React, { isValidElement } from 'react'
 import test from 'ava'
 import rain from '..'
 import createLoading from '../createLoading'
-import { delay, mapTo } from 'rxjs/operators'
+import { delay, mapTo, tap, filter, endWith } from 'rxjs/operators'
 
 const sleep = timeout => new Promise(resolve => setTimeout(resolve, timeout))
 
@@ -17,15 +17,11 @@ test('rain-loading', async t => {
       state: 0,
       reducer: {
         add(state) {
+          console.log('1')
           return state + 1
         },
         addWithAsyncEpic(state) {
-          console.log('addWithAsyncEpic emit')
           return state + 1
-        },
-        test(state) {
-          console.log('test emit')
-          return state
         }
       },
       epic: {

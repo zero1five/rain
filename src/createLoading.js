@@ -65,6 +65,7 @@ function createLoading(opts = {}) {
 
   function onEpic(action$) {
     return action$.pipe(
+      filter(action => action.type === SHOW || action.type === HIDE),
       filter(action => {
         const { type } = action
         if (
@@ -77,8 +78,7 @@ function createLoading(opts = {}) {
           return false
         }
       }),
-      tap(console.log),
-      concat(of({ type: SHOW }), of({ type: HIDE }))
+      tap(console.log)
     )
   }
 
