@@ -20,13 +20,18 @@ test('rain-loading', async t => {
           return state + 1
         },
         addWithAsyncEpic(state) {
+          console.log('addWithAsyncEpic emit')
           return state + 1
+        },
+        test(state) {
+          console.log('test emit')
+          return state
         }
       },
       epic: {
         addEpic: action$ =>
           action$.ofType('add').pipe(
-            delay(100),
+            // delay(100),
             mapTo({ type: 'addWithAsyncEpic' })
           )
       }
@@ -44,17 +49,17 @@ test('rain-loading', async t => {
 
   app._store.dispatch({ type: 'count/add' })
 
-  t.deepEqual(app._store.getState().loading, {
-    global: true,
-    models: { count: true },
-    effects: { 'count/addRemote': true }
-  })
+  // t.deepEqual(app._store.getState().loading, {
+  //   global: true,
+  //   models: { count: true },
+  //   effects: { 'count/addRemote': true }
+  // })
 
-  await sleep(200)
+  // await sleep(200)
 
-  t.deepEqual(app._store.getState().loading, {
-    global: false,
-    models: { count: false },
-    effects: { 'count/addRemote': false }
-  })
+  // t.deepEqual(app._store.getState().loading, {
+  //   global: false,
+  //   models: { count: false },
+  //   effects: { 'count/addRemote': false }
+  // })
 })

@@ -5,7 +5,7 @@ import { createStore, combineReducers, applyMiddleware, compose } from 'redux'
 import { Provider, connect as _connect } from 'react-redux'
 import { createEpicMiddleware, combineEpics } from 'redux-observable'
 import { isFunction, isString, isArray } from 'util'
-import { map, filter } from 'rxjs/operators'
+import { map, filter, concat, tap, startWith, mergeMap } from 'rxjs/operators'
 import { cloneDeep } from 'lodash'
 import Plugin from './Plugin'
 export { default as createLoading } from './createLoading'
@@ -30,6 +30,9 @@ function assignOpts(opt, source, key) {
   }
 }
 
+const SHOW = '@@DVA_LOADING/SHOW'
+const HIDE = '@@DVA_LOADING/HIDE'
+
 function wrapEpic(fn, namespace) {
   return action$ => {
     const source = action$.pipe(
@@ -53,6 +56,18 @@ function wrapEpic(fn, namespace) {
   }
 }
 
+function autoLogger() {
+  return createStore => (reducer, initialState, enhancer) => {
+    const store = createStore(reducer, initialState, enhancer)
+    function dispatch(action) {
+      console.log('action: ', action)
+      const res = store.dispatch(action)
+      return res
+    }
+    return { ...store, dispatch }
+  }
+}
+
 class Rain {
   constructor() {
     this.routingComponent = {}
@@ -66,7 +81,7 @@ class Rain {
 
     this.initialState = {}
     this.middlewares = []
-    this.extraEnhancers = []
+    this.extraEnhancers = [autoLogger()]
     this.listeners = []
     this.plugins = new Plugin()
   }
@@ -195,7 +210,8 @@ class Rain {
       ? combineEpics(...this.rootEpic)
       : combineEpics()
 
-    ;[root, ...onEpic].forEach(epicMiddleware.run)
+    // ;[root, ...onEpic].forEach(epicMiddleware.run)
+    epicMiddleware.run(root)
 
     if (node) {
       ReactDOM.render(
