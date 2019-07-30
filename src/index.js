@@ -7,6 +7,8 @@ import { createEpicMiddleware, combineEpics } from 'redux-observable'
 import { isFunction, isString, isArray } from 'util'
 import { map, filter } from 'rxjs/operators'
 import { cloneDeep } from 'lodash'
+import Plugin from './Plugin'
+export { default as createLoading } from './createLoading'
 
 const produceNamespace = filename => {
   return filename.replace(/\.[j|t]s(x?)/, '')
@@ -66,6 +68,7 @@ class Rain {
     this.middlewares = []
     this.extraEnhancers = []
     this.listeners = []
+    this.plugins = new Plugin()
   }
 
   onError(fn) {
@@ -99,6 +102,10 @@ class Rain {
         'onStateChange'
       )
     }
+  }
+
+  use(plugin) {
+    this.plugins.use(plugin)
   }
 
   model(Module, filename) {
@@ -165,11 +172,17 @@ class Rain {
       ...this.extraEnhancers
     )
 
+    const { plugins, epicMiddleware } = this
+
+    const extraReducers = plugins.get('extraReducers')
+    const onEpic = plugins.get('onEpic')
+
     const store = createStore(
-      combineReducers(this.appReducers),
+      combineReducers({ ...this.appReducers, ...extraReducers }),
       this.initialState,
       enhancer
     )
+
     this._store = store
 
     store.subscribe(() => {
@@ -182,7 +195,7 @@ class Rain {
       ? combineEpics(...this.rootEpic)
       : combineEpics()
 
-    this.epicMiddleware.run(root)
+    ;[root, /* ...onEpic */].forEach(epicMiddleware.run)
 
     if (node) {
       ReactDOM.render(
