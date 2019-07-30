@@ -6,7 +6,9 @@ import rain from '..'
 import createLoading from '../createLoading'
 import { delay, mapTo } from 'rxjs/operators'
 
-test('rain-loading', t => {
+const sleep = timeout => new Promise(resolve => setTimeout(resolve, timeout))
+
+test('rain-loading', async t => {
   const app = rain()
   app.use(createLoading())
   app.model(
@@ -41,4 +43,18 @@ test('rain-loading', t => {
   })
 
   app._store.dispatch({ type: 'count/add' })
+
+  t.deepEqual(app._store.getState().loading, {
+    global: true,
+    models: { count: true },
+    effects: { 'count/addRemote': true }
+  })
+
+  await sleep(200)
+
+  t.deepEqual(app._store.getState().loading, {
+    global: false,
+    models: { count: false },
+    effects: { 'count/addRemote': false }
+  })
 })

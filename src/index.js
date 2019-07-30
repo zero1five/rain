@@ -195,7 +195,7 @@ class Rain {
       ? combineEpics(...this.rootEpic)
       : combineEpics()
 
-    ;[root, /* ...onEpic */].forEach(epicMiddleware.run)
+    ;[root, ...onEpic].forEach(epicMiddleware.run)
 
     if (node) {
       ReactDOM.render(

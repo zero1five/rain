@@ -77,7 +77,7 @@
   },
   "ava": {
     "files": [
-      "**/test/**/*.test.js"
+      "**/test/**/plugin.test.js"
     ],
     "require": [
       "@babel/register"

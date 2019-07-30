@@ -1,5 +1,6 @@
 import invariant from 'invariant'
-import { filter, mapTo, concatAll } from 'rxjs/operators'
+import { filter, tap, concat } from 'rxjs/operators'
+import { of } from 'rxjs'
 
 const SHOW = '@@DVA_LOADING/SHOW'
 const HIDE = '@@DVA_LOADING/HIDE'
@@ -76,9 +77,8 @@ function createLoading(opts = {}) {
           return false
         }
       }),
-      mapTo({ type: SHOW }),
-      concatAll(),
-      mapTo({ type: HIDE })
+      tap(console.log),
+      concat(of({ type: SHOW }), of({ type: HIDE }))
     )
   }
 
