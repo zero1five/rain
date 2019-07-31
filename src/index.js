@@ -15,9 +15,7 @@ import {
   concat,
   startWith,
   endWith,
-  merge,
-  mergeMap,
-  mergeAll
+  take
 } from 'rxjs/operators'
 import { cloneDeep } from 'lodash'
 import Plugin from './Plugin'
@@ -57,7 +55,8 @@ function wrapEpic(fn /* epic */, namespace /* model name */) {
       map(action => ({
         ...action,
         type: action.type.slice(action.type.indexOf('/') + 1)
-      }))
+      })),
+      take(1)
     )
 
     const result$ = fn(source$).pipe(
@@ -66,7 +65,7 @@ function wrapEpic(fn /* epic */, namespace /* model name */) {
         type: namespace + '/' + action.type
       })),
       startWith({ type: SHOW }),
-      merge(of({ type: HIDE }))
+      endWith({ type: HIDE })
     )
 
     return result$

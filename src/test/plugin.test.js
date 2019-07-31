@@ -17,7 +17,6 @@ test('rain-loading', async t => {
       state: 0,
       reducer: {
         add(state) {
-          console.log('1')
           return state + 1
         },
         addWithAsyncEpic(state) {
