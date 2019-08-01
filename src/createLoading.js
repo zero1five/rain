@@ -1,5 +1,5 @@
 import invariant from 'invariant'
-import { startWith, endWith, take, filter, map } from 'rxjs/operators'
+import { startWith, endWith, take, filter, map, tap } from 'rxjs/operators'
 
 const debounce = (fn, wait) => {
   let timer = null
@@ -36,14 +36,12 @@ function createLoading(opts = {}) {
     const actionWithLoading = []
     const endCaller = (action, store) => {
       // 如果loading中所有的action一样，则说明处于Hide阶段，触发响应的action
-      console.log(actionWithLoading)
-      if (
-        actionWithLoading.length >= 1 &&
-        actionWithLoading.every(x => x.type === action.type)
-      ) {
-        const endAction = actionWithLoading.shift()
+      const idx = actionWithLoading.findIndex(
+        x => x.internalType === action.type
+      )
+      if (actionWithLoading.length >= 1 && idx > -1) {
+        const endAction = actionWithLoading.splice(idx, 1)[0]
         store.dispatch(endAction)
-        actionWithLoading.length = 0
       }
     }
     const debounceEnd = debounce(endCaller, 1)
@@ -51,19 +49,21 @@ function createLoading(opts = {}) {
     return createStore => (reducer, initialState, enhancer) => {
       const store = createStore(reducer, initialState, enhancer)
       function dispatch(action) {
-        // console.log('action: ', action)
-        // console.log()
-        if (action.type === SHOW || action.type === HIDE) {
+        console.log('action: ', action)
+        console.log()
+        if (
+          (action.type === SHOW || action.type === HIDE) &&
+          only.indexOf(action.internalType) !== -1
+        ) {
           actionWithLoading.push(action)
           debounceEnd(action, store)
         } else {
-          const loading = actionWithLoading.find(
+          const idx = actionWithLoading.findIndex(
             x => x.internalType === action.type
           )
-          if (loading) {
-            console.log('loading: ', actionWithLoading, action.type)
-            store.dispatch(loading)
-            actionWithLoading.length = 0
+          if (idx > -1) {
+            const endAction = actionWithLoading.splice(idx, 1)[0]
+            store.dispatch(endAction)
           }
           const res = store.dispatch(action)
           return res
