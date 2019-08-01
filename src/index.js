@@ -10,9 +10,6 @@ import { cloneDeep } from 'lodash'
 import Plugin from './Plugin'
 export { default as createLoading } from './createLoading'
 
-const SHOW = '@@DVA_LOADING/SHOW'
-const HIDE = '@@DVA_LOADING/HIDE'
-
 const produceNamespace = filename => {
   return filename.replace(/\.[j|t]s(x?)/, '')
 }
@@ -178,8 +175,8 @@ class Rain {
     const onEpic = plugins.get('onEpic')
 
     const enhancer = compose(
-      ...this.extraEnhancers.concat(onEnhancers),
-      applyMiddleware(...this.middlewares)
+      applyMiddleware(...this.middlewares),
+      ...this.extraEnhancers.concat(onEnhancers)
     )
 
     const store = createStore(

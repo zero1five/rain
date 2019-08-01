@@ -68,6 +68,8 @@ function createLoading(opts = {}) {
     return createStore => (reducer, initialState, enhancer) => {
       const store = createStore(reducer, initialState, enhancer)
       function dispatch(action) {
+        console.log('action: ', action)
+        console.log()
         if (action.type === SHOW || action.type === HIDE) {
           actionWithLoading.push(action)
           return
@@ -83,6 +85,7 @@ function createLoading(opts = {}) {
           return res
         }
       }
+
       return { ...store, dispatch }
     }
   }
@@ -103,12 +106,19 @@ function createLoading(opts = {}) {
           take(1)
         )
 
+        const actionType = partialKey.replace(/Epic/, '')
+        const payload = { actionType: partialKey, namespace }
         const result$ = fn(source$).pipe(
           startWith({
+            payload,
             type: SHOW,
-            internalType: partialKey.replace(/Epic/, '')
+            internalType: actionType
           }),
-          endWith({ type: HIDE, internalType: partialKey.replace(/Epic/, '') })
+          endWith({
+            payload,
+            type: HIDE,
+            internalType: actionType
+          })
         )
 
         return result$
