@@ -1,6 +1,5 @@
 import invariant from 'invariant'
-import { filter, tap, concat } from 'rxjs/operators'
-import { of } from 'rxjs'
+import { startWith, endWith, take, tap, filter } from 'rxjs/operators'
 
 const SHOW = '@@DVA_LOADING/SHOW'
 const HIDE = '@@DVA_LOADING/HIDE'
@@ -63,23 +62,27 @@ function createLoading(opts = {}) {
     }
   }
 
-  function onEpic(action$) {
-    return action$.pipe(
-      filter(action => action.type === SHOW || action.type === HIDE),
-      filter(action => {
-        const { type } = action
-        if (
-          (only.length === 0 && except.length === 0) ||
-          (only.length > 0 && only.indexOf(type) !== -1) ||
-          (except.length > 0 && except.indexOf(type) === -1)
-        ) {
-          return true
-        } else {
-          return false
-        }
-      }),
-      tap(console.log)
-    )
+  function onEpic(fn) {
+    return action$ => {
+      const source$ = action$.pipe(
+        tap(action => console.log(action.type)),
+        filter(
+          ({ type: actionType }) =>
+            ((only.length === 0 && except.length === 0) ||
+              (only.length > 0 && only.indexOf(actionType) !== -1) ||
+              (except.length > 0 && except.indexOf(actionType) === -1)) &&
+            (actionType !== SHOW && actionType !== HIDE)
+        ),
+        take(1)
+      )
+
+      const result$ = fn(source$).pipe(
+        startWith({ type: SHOW }),
+        endWith({ type: HIDE })
+      )
+
+      return result$
+    }
   }
 
   return {

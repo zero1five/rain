@@ -5,18 +5,7 @@ import { createStore, combineReducers, applyMiddleware, compose } from 'redux'
 import { Provider, connect as _connect } from 'react-redux'
 import { createEpicMiddleware, combineEpics } from 'redux-observable'
 import { isFunction, isString, isArray } from 'util'
-import { of, defer } from 'rxjs'
-import {
-  map,
-  filter,
-  concatMap,
-  mapTo,
-  tap,
-  concat,
-  startWith,
-  endWith,
-  take
-} from 'rxjs/operators'
+import { map, filter } from 'rxjs/operators'
 import { cloneDeep } from 'lodash'
 import Plugin from './Plugin'
 export { default as createLoading } from './createLoading'
@@ -41,9 +30,6 @@ function assignOpts(opt, source, key) {
   }
 }
 
-const SHOW = '@@DVA_LOADING/SHOW'
-const HIDE = '@@DVA_LOADING/HIDE'
-
 function wrapEpic(fn /* epic */, namespace /* model name */) {
   return action$ => {
     const source$ = action$.pipe(
@@ -55,17 +41,14 @@ function wrapEpic(fn /* epic */, namespace /* model name */) {
       map(action => ({
         ...action,
         type: action.type.slice(action.type.indexOf('/') + 1)
-      })),
-      take(1)
+      }))
     )
 
     const result$ = fn(source$).pipe(
       map(action => ({
         ...action,
         type: namespace + '/' + action.type
-      })),
-      startWith({ type: SHOW }),
-      endWith({ type: HIDE })
+      }))
     )
 
     return result$
@@ -222,12 +205,13 @@ class Rain {
       }
     })
 
+    const onEpicWithCompose = compose(...onEpic)
+
     const root = this.rootEpic.length
-      ? combineEpics(...this.rootEpic)
+      ? combineEpics(...this.rootEpic.map(onEpicWithCompose))
       : combineEpics()
 
-    // ;[root, ...onEpic].forEach(epicMiddleware.run)
-    epicMiddleware.run(root)
+    ;[root].forEach(epicMiddleware.run)
 
     if (node) {
       ReactDOM.render(
