@@ -111,6 +111,8 @@ class Rain {
   }
 
   model(Module, filename) {
+    invariant(filename, `[app.model] module load needs filename`)
+
     const model = cloneDeep(Module.default || Module)
     const namespace = produceNamespace(filename)
 
@@ -140,9 +142,11 @@ class Rain {
 
     const modelState = model.state || !model.state ? model.state : {}
     const reducer = (state = modelState, { type, payload }) => {
-      const func = model.reducer[type]
-      if (func) {
-        return func(state, { type, payload })
+      if (model.reducer) {
+        const func = model.reducer[type]
+        if (func) {
+          return func(state, { type, payload })
+        }
       }
       return state
     }

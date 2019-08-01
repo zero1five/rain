@@ -4,7 +4,7 @@ import React, { isValidElement } from 'react'
 import test from 'ava'
 import rain from '..'
 import createLoading from '../createLoading'
-import { delay, mapTo, tap } from 'rxjs/operators'
+import { delay, mapTo } from 'rxjs/operators'
 
 const sleep = timeout => new Promise(resolve => setTimeout(resolve, timeout))
 
@@ -26,6 +26,11 @@ test('rain-loading', async t => {
       epic: {
         addEpic: action$ =>
           action$.ofType('add').pipe(
+            delay(100),
+            mapTo({ type: 'addWithAsyncEpic' })
+          ),
+        testEpic: action$ =>
+          action$.ofType('test').pipe(
             delay(100),
             mapTo({ type: 'addWithAsyncEpic' })
           )
@@ -59,4 +64,27 @@ test('rain-loading', async t => {
   })
 
   t.is(app._store.getState().count, 2)
+})
+
+test('rain-loading-namespace', t => {
+  const app = rain()
+  app.use(
+    createLoading({
+      namespace: 'fooLoading'
+    })
+  )
+  app.model(
+    {
+      namespace: 'count',
+      state: 0
+    },
+    'count'
+  )
+  app.router(() => 1)
+  app.run()
+  t.deepEqual(app._store.getState().fooLoading, {
+    global: false,
+    models: {},
+    effects: {}
+  })
 })

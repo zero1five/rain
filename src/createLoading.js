@@ -1,6 +1,17 @@
 import invariant from 'invariant'
 import { startWith, endWith, take, filter, map } from 'rxjs/operators'
-import { of } from 'rxjs'
+
+const debounce = (fn, wait) => {
+  let timer = null
+  return function(...args) {
+    const ctx = this
+    if (timer) {
+      clearTimeout(timer)
+      timer = null
+    }
+    timer = setTimeout(() => fn.apply(ctx, args), wait)
+  }
+}
 
 const SHOW = '@@DVA_LOADING/SHOW'
 const HIDE = '@@DVA_LOADING/HIDE'
@@ -65,6 +76,19 @@ function createLoading(opts = {}) {
 
   function extraEnhancers() {
     const actionWithLoading = []
+    const endCaller = (action, store) => {
+      // 如果loading中所有的action一样，则说明处于Hide阶段，触发响应的action
+      if (
+        actionWithLoading.length >= 1 &&
+        actionWithLoading.every(x => x.type === action.type)
+      ) {
+        const endAction = actionWithLoading.shift()
+        store.dispatch(endAction)
+        actionWithLoading.length = 0
+      }
+    }
+    const debounceEnd = debounce(endCaller, 1)
+
     return createStore => (reducer, initialState, enhancer) => {
       const store = createStore(reducer, initialState, enhancer)
       function dispatch(action) {
@@ -72,7 +96,7 @@ function createLoading(opts = {}) {
         console.log()
         if (action.type === SHOW || action.type === HIDE) {
           actionWithLoading.push(action)
-          return
+          debounceEnd(action, store)
         } else {
           const loading = actionWithLoading.find(
             x => x.internalType === action.type
