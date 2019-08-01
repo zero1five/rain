@@ -92,8 +92,8 @@ function createLoading(opts = {}) {
     return createStore => (reducer, initialState, enhancer) => {
       const store = createStore(reducer, initialState, enhancer)
       function dispatch(action) {
-        console.log('action: ', action)
-        console.log()
+        // console.log('action: ', action)
+        // console.log()
         if (action.type === SHOW || action.type === HIDE) {
           actionWithLoading.push(action)
           debounceEnd(action, store)

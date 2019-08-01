@@ -111,19 +111,23 @@ class Rain {
   }
 
   model(Module, filename) {
-    invariant(filename, `[app.model] module load needs filename`)
-
-    const model = cloneDeep(Module.default || Module)
-    const namespace = produceNamespace(filename)
-
-    invariant(namespace, `[app.model] module needs a namespace`)
     invariant(
       !this.appReducers[namespace],
       `[app.model] module for name '${namespace}' exist`
     )
 
+    invariant(filename, `[app.model] module needs filename`)
+
+    const model = cloneDeep(Module.default || Module)
+    const namespace = produceNamespace(filename)
+
     if (model.epic) {
       Object.keys(model.epic).forEach(key => {
+        invariant(
+          /Epic$/.test(key),
+          `[app.epic] every epic must be suffix 'Epic'. debug to [${namespace}.${key}]`
+        )
+
         const partialKey = namespace + '/' + key
         const wrapper = wrapEpic([model.epic[key], namespace])
 

@@ -28,11 +28,6 @@ test('rain-loading', async t => {
           action$.ofType('add').pipe(
             delay(100),
             mapTo({ type: 'addWithAsyncEpic' })
-          ),
-        testEpic: action$ =>
-          action$.ofType('test').pipe(
-            delay(100),
-            mapTo({ type: 'addWithAsyncEpic' })
           )
       }
     },
@@ -66,7 +61,7 @@ test('rain-loading', async t => {
   t.is(app._store.getState().count, 2)
 })
 
-test('rain-loading-namespace', t => {
+test('opts.amespace', t => {
   const app = rain()
   app.use(
     createLoading({
@@ -86,5 +81,72 @@ test('rain-loading-namespace', t => {
     global: false,
     models: {},
     effects: {}
+  })
+})
+
+test('opts.only', async t => {
+  const app = rain()
+  app.use(
+    createLoading({
+      only: ['count/a']
+    })
+  )
+  app.model(
+    {
+      namespace: 'count',
+      state: 0,
+      reducer: {
+        a(state) {
+          return state + 1
+        },
+        b(state) {
+          return state + 1
+        },
+        c(state) {
+          return state + 1
+        }
+      },
+      epic: {
+        aEpic: action$ =>
+          action$.ofType('a').pipe(
+            delay(500),
+            mapTo({ type: 'c' })
+          ),
+        bEpic: action$ =>
+          action$.ofType('b').pipe(
+            delay(500),
+            mapTo({ type: 'c' })
+          )
+      }
+    },
+    'count'
+  )
+  app.router(() => 1)
+  app.run()
+
+  t.deepEqual(app._store.getState().loading, {
+    global: false,
+    models: {},
+    effects: {}
+  })
+
+  app._store.dispatch({ type: 'count/a' })
+
+  await sleep(300)
+
+  t.deepEqual(app._store.getState().loading, {
+    global: true,
+    models: { count: true },
+    effects: { 'count/aEpic': true }
+  })
+
+  app._store.dispatch({ type: 'count/b' })
+
+  await sleep(300)
+
+  t.deepEqual(app._store.getState().loading, {
+    global: false,
+    models: { count: false },
+    effects: { 'count/aEpic': false }
   })
 })
