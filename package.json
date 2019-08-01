@@ -82,7 +82,7 @@
       "@babel/polyfill"
     ],
     "files": [
-      "**/test/**/*.test.js"
+      "**/test/**/plugin.test.js"
     ]
   },
   "config": {

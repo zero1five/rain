@@ -32,6 +32,48 @@ function createLoading(opts = {}) {
     effects: {}
   }
 
+  function extraEnhancers() {
+    const actionWithLoading = []
+    const endCaller = (action, store) => {
+      // 如果loading中所有的action一样，则说明处于Hide阶段，触发响应的action
+      console.log(actionWithLoading)
+      if (
+        actionWithLoading.length >= 1 &&
+        actionWithLoading.every(x => x.type === action.type)
+      ) {
+        const endAction = actionWithLoading.shift()
+        store.dispatch(endAction)
+        actionWithLoading.length = 0
+      }
+    }
+    const debounceEnd = debounce(endCaller, 1)
+
+    return createStore => (reducer, initialState, enhancer) => {
+      const store = createStore(reducer, initialState, enhancer)
+      function dispatch(action) {
+        // console.log('action: ', action)
+        // console.log()
+        if (action.type === SHOW || action.type === HIDE) {
+          actionWithLoading.push(action)
+          debounceEnd(action, store)
+        } else {
+          const loading = actionWithLoading.find(
+            x => x.internalType === action.type
+          )
+          if (loading) {
+            console.log('loading: ', actionWithLoading, action.type)
+            store.dispatch(loading)
+            actionWithLoading.length = 0
+          }
+          const res = store.dispatch(action)
+          return res
+        }
+      }
+
+      return { ...store, dispatch }
+    }
+  }
+
   const extraReducers = {
     [namespace](state = initialState, { type, payload }) {
       const { namespace, actionType } = payload || {}
@@ -71,46 +113,6 @@ function createLoading(opts = {}) {
           break
       }
       return ret
-    }
-  }
-
-  function extraEnhancers() {
-    const actionWithLoading = []
-    const endCaller = (action, store) => {
-      // 如果loading中所有的action一样，则说明处于Hide阶段，触发响应的action
-      if (
-        actionWithLoading.length >= 1 &&
-        actionWithLoading.every(x => x.type === action.type)
-      ) {
-        const endAction = actionWithLoading.shift()
-        store.dispatch(endAction)
-        actionWithLoading.length = 0
-      }
-    }
-    const debounceEnd = debounce(endCaller, 1)
-
-    return createStore => (reducer, initialState, enhancer) => {
-      const store = createStore(reducer, initialState, enhancer)
-      function dispatch(action) {
-        // console.log('action: ', action)
-        // console.log()
-        if (action.type === SHOW || action.type === HIDE) {
-          actionWithLoading.push(action)
-          debounceEnd(action, store)
-        } else {
-          const loading = actionWithLoading.find(
-            x => x.internalType === action.type
-          )
-          if (loading) {
-            store.dispatch(loading)
-            actionWithLoading.length = 0
-          }
-          const res = store.dispatch(action)
-          return res
-        }
-      }
-
-      return { ...store, dispatch }
     }
   }
 

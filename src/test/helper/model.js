@@ -1,4 +1,4 @@
-import { map } from 'rxjs/operators'
+import { map, delay, mapTo } from 'rxjs/operators'
 
 export const countModel = {
   namespace: 'count',
@@ -19,5 +19,33 @@ export const countModel = {
       action$
         .ofType('minus')
         .pipe(map(action => ({ type: 'doubleMinus', payload: action.payload })))
+  }
+}
+
+export const loadingCount = {
+  namespace: 'count',
+  state: 0,
+  reducer: {
+    a(state) {
+      return state + 1
+    },
+    b(state) {
+      return state + 1
+    },
+    c(state) {
+      return state + 1
+    }
+  },
+  epic: {
+    aEpic: action$ =>
+      action$.ofType('a').pipe(
+        delay(500),
+        mapTo({ type: 'c' })
+      ),
+    bEpic: action$ =>
+      action$.ofType('b').pipe(
+        delay(500),
+        mapTo({ type: 'c' })
+      )
   }
 }
