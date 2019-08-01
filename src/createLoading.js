@@ -1,5 +1,6 @@
 import invariant from 'invariant'
-import { startWith, endWith, take, tap, filter } from 'rxjs/operators'
+import { startWith, endWith, take, filter, map } from 'rxjs/operators'
+import { of } from 'rxjs'
 
 const SHOW = '@@DVA_LOADING/SHOW'
 const HIDE = '@@DVA_LOADING/HIDE'
@@ -62,27 +63,32 @@ function createLoading(opts = {}) {
     }
   }
 
-  function onEpic(fn) {
-    return action$ => {
-      const source$ = action$.pipe(
-        tap(action => console.log(action.type)),
-        filter(
-          ({ type: actionType }) =>
-            ((only.length === 0 && except.length === 0) ||
-              (only.length > 0 && only.indexOf(actionType) !== -1) ||
-              (except.length > 0 && except.indexOf(actionType) === -1)) &&
-            (actionType !== SHOW && actionType !== HIDE)
-        ),
-        take(1)
-      )
+  function onEpic([fn /* epic */, namespace /* model name */, partialKey]) {
+    const filterSpec$ = filter(
+      ({ type: actionType }) =>
+        ((only.length === 0 && except.length === 0) ||
+          (only.length > 0 && only.indexOf(actionType) !== -1) ||
+          (except.length > 0 && except.indexOf(actionType) === -1)) &&
+        (actionType !== SHOW && actionType !== HIDE)
+    )
 
-      const result$ = fn(source$).pipe(
-        startWith({ type: SHOW }),
-        endWith({ type: HIDE })
-      )
+    return [
+      action$ => {
+        const source$ = action$.pipe(
+          filterSpec$,
+          take(1)
+        )
 
-      return result$
-    }
+        const result$ = fn(source$).pipe(
+          startWith({ type: SHOW, internalType: partialKey }),
+          endWith({ type: HIDE, internalType: partialKey })
+        )
+
+        return result$
+      },
+      namespace,
+      partialKey
+    ]
   }
 
   return {

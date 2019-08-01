@@ -30,7 +30,7 @@ function assignOpts(opt, source, key) {
   }
 }
 
-function wrapEpic(fn /* epic */, namespace /* model name */) {
+function wrapEpic([fn /* epic */, namespace /* model name */]) {
   return action$ => {
     const source$ = action$.pipe(
       filter(action => {
@@ -135,10 +135,10 @@ class Rain {
     if (model.epic) {
       Object.keys(model.epic).forEach(key => {
         const partialKey = namespace + '/' + key
-        const wrapper = wrapEpic(model.epic[key], namespace)
+        const wrapper = wrapEpic([model.epic[key], namespace])
 
         this.moduleFilename[partialKey] = filename
-        this.rootEpic.push(wrapper)
+        this.rootEpic.push([wrapper, namespace, partialKey])
       })
     }
 
@@ -208,7 +208,7 @@ class Rain {
     const onEpicWithCompose = compose(...onEpic)
 
     const root = this.rootEpic.length
-      ? combineEpics(...this.rootEpic.map(onEpicWithCompose))
+      ? combineEpics(...this.rootEpic.map(onEpicWithCompose).map(([x, _]) => x))
       : combineEpics()
 
     ;[root].forEach(epicMiddleware.run)
