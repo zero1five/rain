@@ -10,6 +10,9 @@ import { cloneDeep } from 'lodash'
 import Plugin from './Plugin'
 export { default as createLoading } from './createLoading'
 
+const SHOW = '@@DVA_LOADING/SHOW'
+const HIDE = '@@DVA_LOADING/HIDE'
+
 const produceNamespace = filename => {
   return filename.replace(/\.[j|t]s(x?)/, '')
 }
@@ -55,18 +58,6 @@ function wrapEpic([fn /* epic */, namespace /* model name */]) {
   }
 }
 
-function autoLogger() {
-  return createStore => (reducer, initialState, enhancer) => {
-    const store = createStore(reducer, initialState, enhancer)
-    function dispatch(action) {
-      console.log('action: ', action)
-      const res = store.dispatch(action)
-      return res
-    }
-    return { ...store, dispatch }
-  }
-}
-
 class Rain {
   constructor() {
     this.routingComponent = {}
@@ -80,9 +71,9 @@ class Rain {
 
     this.initialState = {}
     this.middlewares = []
-    this.extraEnhancers = [autoLogger()]
-    this.listeners = []
     this.plugins = new Plugin()
+    this.extraEnhancers = []
+    this.listeners = []
   }
 
   onError(fn) {
@@ -181,15 +172,15 @@ class Rain {
       `[app.run] router not or failed register`
     )
 
-    const enhancer = compose(
-      applyMiddleware(...this.middlewares),
-      ...this.extraEnhancers
-    )
-
     const { plugins, epicMiddleware } = this
-
+    const onEnhancers = plugins.get('extraEnhancers')
     const extraReducers = plugins.get('extraReducers')
     const onEpic = plugins.get('onEpic')
+
+    const enhancer = compose(
+      ...this.extraEnhancers.concat(onEnhancers),
+      applyMiddleware(...this.middlewares)
+    )
 
     const store = createStore(
       combineReducers({ ...this.appReducers, ...extraReducers }),

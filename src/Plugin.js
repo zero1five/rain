@@ -43,7 +43,7 @@ export default class Plugin {
         if (key === '_handleActions') {
           this._handleActions = plugin[key]
         } else if (key === 'extraEnhancers') {
-          hooks[key] = plugin[key]
+          hooks[key].push(plugin[key]())
         } else {
           hooks[key].push(plugin[key])
         }

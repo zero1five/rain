@@ -63,6 +63,30 @@ function createLoading(opts = {}) {
     }
   }
 
+  function extraEnhancers() {
+    const actionWithLoading = []
+    return createStore => (reducer, initialState, enhancer) => {
+      const store = createStore(reducer, initialState, enhancer)
+      function dispatch(action) {
+        if (action.type === SHOW || action.type === HIDE) {
+          actionWithLoading.push(action)
+          return
+        } else {
+          const loading = actionWithLoading.find(
+            x => x.internalType === action.type
+          )
+          if (loading) {
+            store.dispatch(loading)
+            actionWithLoading.length = 0
+          }
+          const res = store.dispatch(action)
+          return res
+        }
+      }
+      return { ...store, dispatch }
+    }
+  }
+
   function onEpic([fn /* epic */, namespace /* model name */, partialKey]) {
     const filterSpec$ = filter(
       ({ type: actionType }) =>
@@ -80,8 +104,11 @@ function createLoading(opts = {}) {
         )
 
         const result$ = fn(source$).pipe(
-          startWith({ type: SHOW, internalType: partialKey }),
-          endWith({ type: HIDE, internalType: partialKey })
+          startWith({
+            type: SHOW,
+            internalType: partialKey.replace(/Epic/, '')
+          }),
+          endWith({ type: HIDE, internalType: partialKey.replace(/Epic/, '') })
         )
 
         return result$
@@ -93,6 +120,7 @@ function createLoading(opts = {}) {
 
   return {
     extraReducers,
+    extraEnhancers,
     onEpic
   }
 }
