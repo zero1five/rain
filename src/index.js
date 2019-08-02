@@ -207,6 +207,7 @@ class Rain {
       ? combineEpics(...this.rootEpic.map(onEpicWithCompose).map(([x, _]) => x))
       : combineEpics()
 
+    // epicMiddleware.run 相当于 subject.next(root)
     ;[root].forEach(epicMiddleware.run)
 
     if (node) {
