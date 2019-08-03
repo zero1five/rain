@@ -12,6 +12,60 @@
 [![](https://img.shields.io/badge/support%20me-donate-ff00ff.svg)](https://www.patreon.com/zero1five)
 [![](https://img.shields.io/badge/code_style-prettier-ff69b4.svg)](https://github.com/prettier/prettier)
 
+## Usage
+```javascript
+// pages/index.js
+import React, { PureComponent } from 'react'
+import { connect } from 'redux-rain'
+
+@connect(({ loading, index }) => ({
+  count: index['count'],
+  loading: loading.effects['index/addEpic']
+}))
+export default class MyRootComponent extends PureComponent {
+  render() {
+    const { dispatch, loading, count } = this.props
+    const text = `${count}`
+    return (
+      <div>
+        <h1>Page index</h1>
+        <p>{text}</p>
+        <button onClick={() => dispatch({ type: 'index/add', payload: 1 })}>Start Ping</button>
+      </div>
+    );
+  }
+}
+
+// models/index.js
+import { delay, mapTo, tap } from 'rxjs/operators'
+
+export default {
+  namespace: 'index',
+  state: {
+    count: 0,
+    payload: {}
+  },
+  reducer: {
+    add(state, { payload }) {
+      return { ...state, payload }
+    },
+    doubleAdd(state, {}) {
+      const { payload, count } = state
+      return { ...state, count: count + payload }
+    }
+  },
+  epic: {
+    addEpic: action$ =>
+      action$
+        .ofType('add')
+        .pipe(
+          delay(2000),
+          mapTo({ type: 'doubleAdd' })
+        )
+  }
+}
+```
+
 ## Contributing
 
 1. Fork it!
