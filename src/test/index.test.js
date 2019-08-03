@@ -30,6 +30,7 @@ test('router not or failed register', t => {
 
 test('opts.initialState', t => {
   const app = rain({ initialState: { count: 1 } })
+  app.model(countModel, 'count')
   app.router(() => <div />)
   app.run()
 
@@ -46,6 +47,7 @@ test('opts.onAction', t => {
     onAction: countMiddleware
   })
 
+  app.model(countModel, 'count')
   app.router(() => <div />)
   app.run()
 
@@ -69,6 +71,7 @@ test('opts.onAction with Array', t => {
   const app = rain({
     onAction: [countMiddleware, count2Middleware]
   })
+  app.model(countModel, 'count')
   app.router(() => <div />)
   app.run()
 
@@ -92,6 +95,7 @@ test('opts.extraEnhancers', t => {
   const app = rain({
     extraEnhancers: countEnhancer
   })
+  app.model(countModel, 'count')
   app.router(() => <div />)
   app.run()
 

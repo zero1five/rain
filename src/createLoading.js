@@ -24,7 +24,6 @@ function createLoading(opts = {}) {
     return createStore => (reducer, initialState, enhancer) => {
       const store = createStore(reducer, initialState, enhancer)
       function dispatch(action) {
-        console.log('action: ', action)
         const res = store.dispatch(action)
         return res
       }
@@ -100,7 +99,9 @@ function createLoading(opts = {}) {
             ((only.length === 0 && except.length === 0) ||
               (only.length > 0 && only.indexOf(actionType) !== -1) ||
               (except.length > 0 && except.indexOf(actionType) === -1)) &&
-            (action.type !== SHOW || action.type !== HIDE)
+            (action.type !== SHOW &&
+              action.type !== HIDE &&
+              action.type === actionType)
           ) {
             dispatch({
               payload,

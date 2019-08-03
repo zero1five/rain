@@ -39,9 +39,7 @@ export const loadingCount = {
   epic: {
     aEpic: action$ =>
       action$.ofType('a').pipe(
-        tap(() => console.log(+new Date())),
         delay(500),
-        tap(() => console.log(+new Date())),
         mapTo({ type: 'c' })
       ),
     bEpic: action$ =>
