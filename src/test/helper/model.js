@@ -1,4 +1,4 @@
-import { map, delay, mapTo, tap, filter } from 'rxjs/operators'
+import { map, delay, mapTo, tap } from 'rxjs/operators'
 
 export const countModel = {
   namespace: 'count',
@@ -37,17 +37,17 @@ export const loadingCount = {
     }
   },
   epic: {
-    aEpic: action$ => {
-      return action$.pipe(
-        filter(action => action.type === 'a'),
+    aEpic: action$ =>
+      action$.ofType('a').pipe(
+        tap(() => console.log(+new Date())),
+        delay(500),
+        tap(() => console.log(+new Date())),
+        mapTo({ type: 'c' })
+      ),
+    bEpic: action$ =>
+      action$.ofType('b').pipe(
         delay(500),
         mapTo({ type: 'c' })
       )
-    }
-    // bEpic: action$ =>
-    //   action$.ofType('b').pipe(
-    //     delay(500),
-    //     mapTo({ type: 'c' })
-    //   )
   }
 }

@@ -111,9 +111,9 @@ test('opts.only', async t => {
     effects: { 'count/aEpic': true }
   })
 
-  app._store.dispatch({ type: 'count/b' })
+  // app._store.dispatch({ type: 'count/b' })
 
-  await sleep(300)
+  // await sleep(300)
 
   // t.deepEqual(app._store.getState().loading, {
   //   global: false,

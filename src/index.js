@@ -5,7 +5,7 @@ import { createStore, combineReducers, applyMiddleware, compose } from 'redux'
 import { Provider, connect as _connect } from 'react-redux'
 import { createEpicMiddleware, combineEpics } from 'redux-observable'
 import { isFunction, isString, isArray } from 'util'
-import { map, endWith, merge } from 'rxjs/operators'
+import { map, endWith, tap } from 'rxjs/operators'
 import { of } from 'rxjs'
 import { cloneDeep } from 'lodash'
 import Plugin from './Plugin'
@@ -32,7 +32,7 @@ function assignOpts(opt, source, key) {
 }
 
 function wrapEpic([fn /* epic */, namespace /* model name */, partialKey]) {
-  return action$ => {
+  return (action$, state$) => {
     const source$ = action$.pipe(
       map(action => ({
         ...action,
@@ -42,14 +42,12 @@ function wrapEpic([fn /* epic */, namespace /* model name */, partialKey]) {
       }))
     )
 
-    const result$ = fn(source$).pipe(
+    return fn(source$, state$).pipe(
       map(action => ({
         ...action,
         type: action.internalType ? action.type : namespace + '/' + action.type
       }))
     )
-
-    return result$
   }
 }
 

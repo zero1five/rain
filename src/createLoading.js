@@ -1,17 +1,5 @@
 import invariant from 'invariant'
-import { startWith, endWith, take, filter, mapTo, tap } from 'rxjs/operators'
-
-const debounce = (fn, wait) => {
-  let timer = null
-  return function(...args) {
-    const ctx = this
-    if (timer) {
-      clearTimeout(timer)
-      timer = null
-    }
-    timer = setTimeout(() => fn.apply(ctx, args), wait)
-  }
-}
+import { filter } from 'rxjs/operators'
 
 const SHOW = '@@DVA_LOADING/SHOW'
 const HIDE = '@@DVA_LOADING/HIDE'
@@ -33,42 +21,12 @@ function createLoading(opts = {}) {
   }
 
   function extraEnhancers() {
-    const actionWithLoading = []
-    const endCaller = (action, store) => {
-      // 如果loading中所有的action一样，则说明处于Hide阶段，触发响应的action
-      const idx = actionWithLoading.findIndex(
-        x => x.internalType === action.type
-      )
-      if (actionWithLoading.length >= 1 && idx > -1) {
-        const endAction = actionWithLoading.splice(idx, 1)[0]
-        store.dispatch(endAction)
-      }
-    }
-    const debounceEnd = debounce(endCaller, 1)
-
     return createStore => (reducer, initialState, enhancer) => {
       const store = createStore(reducer, initialState, enhancer)
       function dispatch(action) {
-        console.log('action: ----')
-        console.log(action)
-        console.log()
-        if (
-          (action.type === SHOW || action.type === HIDE) &&
-          only.indexOf(action.internalType) !== -1
-        ) {
-          actionWithLoading.push(action)
-          debounceEnd(action, store)
-        } else {
-          const idx = actionWithLoading.findIndex(
-            x => x.internalType === action.type
-          )
-          if (idx > -1) {
-            const endAction = actionWithLoading.splice(idx, 1)[0]
-            store.dispatch(endAction)
-          }
-          const res = store.dispatch(action)
-          return res
-        }
+        console.log('action: ', action)
+        const res = store.dispatch(action)
+        return res
       }
 
       return { ...store, dispatch }
@@ -79,7 +37,7 @@ function createLoading(opts = {}) {
     [namespace](state = initialState, { type, payload }) {
       const { namespace, actionType } = payload || {}
       let ret
-      console.log('extraReducers', type)
+
       switch (type) {
         case SHOW:
           ret = {
@@ -135,23 +93,20 @@ function createLoading(opts = {}) {
         const actionType = partialKey.replace(/Epic/, '')
         const payload = { actionType: partialKey, namespace }
 
-        const source$ = action$.pipe(
-          filterSpec$,
-          startWith({
-            payload,
-            type: SHOW,
-            internalType: actionType
-          })
-        )
+        const source$ = action$.pipe(filterSpec$)
 
         source$.subscribe(action => {
           if (
             ((only.length === 0 && except.length === 0) ||
               (only.length > 0 && only.indexOf(actionType) !== -1) ||
               (except.length > 0 && except.indexOf(actionType) === -1)) &&
-            (action.type === SHOW || action.type === HIDE)
+            (action.type !== SHOW || action.type !== HIDE)
           ) {
-            dispatch(action)
+            dispatch({
+              payload,
+              type: SHOW,
+              internalType: actionType
+            })
           }
         })
 
