@@ -1,10 +1,10 @@
 import './helper/setup-env'
 import { loadingCount } from './helper/model'
-import React, { isValidElement } from 'react'
+import React from 'react'
 import test from 'ava'
 import rain from '..'
 import createLoading from '../createLoading'
-import { delay, mapTo, tap } from 'rxjs/operators'
+import { delay, mapTo } from 'rxjs/operators'
 
 const sleep = timeout => new Promise(resolve => setTimeout(resolve, timeout))
 
