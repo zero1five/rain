@@ -5,7 +5,8 @@ import { createStore, combineReducers, applyMiddleware, compose } from 'redux'
 import { Provider, connect as _connect } from 'react-redux'
 import { createEpicMiddleware, combineEpics } from 'redux-observable'
 import { isFunction, isString, isArray } from 'util'
-import { map, filter } from 'rxjs/operators'
+import { map, endWith, merge } from 'rxjs/operators'
+import { of } from 'rxjs'
 import { cloneDeep } from 'lodash'
 import Plugin from './Plugin'
 export { default as createLoading } from './createLoading'
@@ -30,24 +31,21 @@ function assignOpts(opt, source, key) {
   }
 }
 
-function wrapEpic([fn /* epic */, namespace /* model name */]) {
+function wrapEpic([fn /* epic */, namespace /* model name */, partialKey]) {
   return action$ => {
     const source$ = action$.pipe(
-      filter(action => {
-        const { type } = action
-        const prefix = type.slice(0, type.indexOf('/'))
-        return prefix === namespace
-      }),
       map(action => ({
         ...action,
-        type: action.type.slice(action.type.indexOf('/') + 1)
+        type: action.internalType
+          ? action.type
+          : action.type.slice(action.type.indexOf('/') + 1)
       }))
     )
 
     const result$ = fn(source$).pipe(
       map(action => ({
         ...action,
-        type: namespace + '/' + action.type
+        type: action.internalType ? action.type : namespace + '/' + action.type
       }))
     )
 
@@ -129,7 +127,7 @@ class Rain {
         )
 
         const partialKey = namespace + '/' + key
-        const wrapper = wrapEpic([model.epic[key], namespace])
+        const wrapper = wrapEpic([model.epic[key], namespace, partialKey])
 
         this.moduleFilename[partialKey] = filename
         this.rootEpic.push([wrapper, namespace, partialKey])
@@ -204,7 +202,12 @@ class Rain {
     const onEpicWithCompose = compose(...onEpic)
 
     const root = this.rootEpic.length
-      ? combineEpics(...this.rootEpic.map(onEpicWithCompose).map(([x, _]) => x))
+      ? combineEpics(
+          ...this.rootEpic
+            .map(x => x.concat([this._store.dispatch]))
+            .map(onEpicWithCompose)
+            .map(([x]) => x)
+        )
       : combineEpics()
 
     // epicMiddleware.run 相当于 subject.next(root)

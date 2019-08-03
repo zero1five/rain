@@ -1,5 +1,5 @@
 import invariant from 'invariant'
-import { startWith, endWith, take, filter, map, tap } from 'rxjs/operators'
+import { startWith, endWith, take, filter, mapTo, tap } from 'rxjs/operators'
 
 const debounce = (fn, wait) => {
   let timer = null
@@ -49,7 +49,8 @@ function createLoading(opts = {}) {
     return createStore => (reducer, initialState, enhancer) => {
       const store = createStore(reducer, initialState, enhancer)
       function dispatch(action) {
-        console.log('action: ', action)
+        console.log('action: ----')
+        console.log(action)
         console.log()
         if (
           (action.type === SHOW || action.type === HIDE) &&
@@ -78,7 +79,7 @@ function createLoading(opts = {}) {
     [namespace](state = initialState, { type, payload }) {
       const { namespace, actionType } = payload || {}
       let ret
-
+      console.log('extraReducers', type)
       switch (type) {
         case SHOW:
           ret = {
@@ -116,36 +117,60 @@ function createLoading(opts = {}) {
     }
   }
 
-  function onEpic([fn /* epic */, namespace /* model name */, partialKey]) {
+  function onEpic([
+    fn /* epic */,
+    namespace /* model name */,
+    partialKey,
+    dispatch
+  ]) {
     const filterSpec$ = filter(
       ({ type: actionType }) =>
-        ((only.length === 0 && except.length === 0) ||
-          (only.length > 0 && only.indexOf(actionType) !== -1) ||
-          (except.length > 0 && except.indexOf(actionType) === -1)) &&
-        (actionType !== SHOW && actionType !== HIDE)
+        (only.length === 0 && except.length === 0) ||
+        (only.length > 0 && only.indexOf(actionType) !== -1) ||
+        (except.length > 0 && except.indexOf(actionType) === -1)
     )
 
     return [
-      action$ => {
-        const source$ = action$.pipe(
-          filterSpec$,
-          take(1)
-        )
-
+      (action$, state$) => {
         const actionType = partialKey.replace(/Epic/, '')
         const payload = { actionType: partialKey, namespace }
-        const result$ = fn(source$).pipe(
+
+        const source$ = action$.pipe(
+          filterSpec$,
           startWith({
             payload,
             type: SHOW,
             internalType: actionType
-          }),
-          endWith({
-            payload,
-            type: HIDE,
-            internalType: actionType
           })
         )
+
+        source$.subscribe(action => {
+          if (
+            ((only.length === 0 && except.length === 0) ||
+              (only.length > 0 && only.indexOf(actionType) !== -1) ||
+              (except.length > 0 && except.indexOf(actionType) === -1)) &&
+            (action.type === SHOW || action.type === HIDE)
+          ) {
+            dispatch(action)
+          }
+        })
+
+        const result$ = fn(source$, state$)
+
+        result$.subscribe(action => {
+          if (
+            ((only.length === 0 && except.length === 0) ||
+              (only.length > 0 && only.indexOf(actionType) !== -1) ||
+              (except.length > 0 && except.indexOf(actionType) === -1)) &&
+            (action.type !== SHOW || action.type !== HIDE)
+          ) {
+            dispatch({
+              payload,
+              type: HIDE,
+              internalType: actionType
+            })
+          }
+        })
 
         return result$
       },

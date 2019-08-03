@@ -95,26 +95,25 @@ test('opts.only', async t => {
   app.router(() => 1)
   app.run()
 
-  console.log(app._store.getState())
   t.deepEqual(app._store.getState().loading, {
     global: false,
     models: {},
     effects: {}
   })
 
-  // app._store.dispatch({ type: 'count/a' })
+  app._store.dispatch({ type: 'count/a' })
 
-  // await sleep(300)
+  await sleep(300)
 
-  // t.deepEqual(app._store.getState().loading, {
-  //   global: true,
-  //   models: { count: true },
-  //   effects: { 'count/aEpic': true }
-  // })
+  t.deepEqual(app._store.getState().loading, {
+    global: true,
+    models: { count: true },
+    effects: { 'count/aEpic': true }
+  })
 
-  // app._store.dispatch({ type: 'count/b' })
+  app._store.dispatch({ type: 'count/b' })
 
-  // await sleep(300)
+  await sleep(300)
 
   // t.deepEqual(app._store.getState().loading, {
   //   global: false,
