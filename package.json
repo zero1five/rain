@@ -4,6 +4,7 @@
   "description": "react and redux-observable framework",
   "main": "dist/index.js",
   "module": "dist/index.esm.min.js",
+  "sideEffects": false,
   "files": [
     "dist",
     "src",
